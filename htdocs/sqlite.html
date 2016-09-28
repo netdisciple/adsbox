@@ -1,0 +1,142 @@
+<html>
+<head>
+<title>ADSBox Query Analyzer</title>
+</head>
+<body>
+
+<script type="text/javascript">
+function query_db(query, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "execute");
+    xhr.send(query);
+    var timeout = setTimeout(function(){xhr.abort();handle_error("Request timeout expired (4s).")}, 4000);
+    xhr.onreadystatechange = function() {
+	if ( xhr.status == 200) {
+	    if (xhr.readyState == 4) {
+		clearTimeout(timeout);
+		callback(xhr.responseText);
+	    }
+	} else {
+	    handle_error(xhr.statusText);
+	}
+    }
+    xhr.onloadend = function(data) {
+	console.log("loadend");
+    }
+}
+
+function handle_error(message) {
+    var cell = document.getElementById("err_txt");
+    cell.innerHTML = message;
+    cell.setAttribute("class", "msg_err");
+}
+
+function clear_table() {
+    var table = document.getElementById("sqlite_rows");
+    var cell = document.getElementById("note");
+    cell.innerHTML = '';
+    var cell = document.getElementById("err_txt");
+    cell.innerHTML = '';
+    while (table.rows.length > 0 )
+	table.deleteRow(0);
+}
+
+function update_table(data) {
+    var json_obj = JSON.parse(data);
+    var err_txt = json_obj.err;
+    var cell = document.getElementById("err_txt");
+    cell.innerHTML = err_txt;
+    if (err_txt !='SQLITE_OK')
+	cell.setAttribute("class", "msg_err");
+    else
+	cell.setAttribute("class", "msg_ok");
+    
+    var cell = document.getElementById("note");
+    if (json_obj.sqlite_rows.length > 0)
+	cell.innerHTML = "Rows returned: " + (json_obj.sqlite_rows.length - 1);
+    else
+	cell.innerHTML = '';
+    
+    var table = document.getElementById("sqlite_rows");
+	
+    for (i in json_obj.sqlite_rows) {
+	var r = json_obj.sqlite_rows[i];
+	var row = table.insertRow(-1);
+	for (c in r) {
+	    var cell = row.insertCell(-1);
+	    cell.setAttribute("class", "sql_table_td");
+	    cell.innerHTML = r[c];
+	}
+    } 
+}
+
+function get_version() {
+	query_db('SELECT SQLITE_VERSION()', function(data){
+		var json_obj = JSON.parse(data);
+		var c = 0;
+		
+		for (var i in json_obj.sqlite_rows) {
+			var r = json_obj.sqlite_rows[i];
+			c++;
+			if (c > 1) {
+				document.getElementById("version").innerHTML ='SQLite ver.' + r['c0'];
+			}
+		}
+	});
+}
+
+
+function initialize() {
+	document.getElementById("version").innerHTML = get_version();
+}
+	
+window.onload = initialize;
+</script>
+
+<style type="text/css">
+.header {
+	font-family: arial;
+	font-size: 22px;	
+}
+.banner {
+	font-family: arial;
+	font-size: 16px;	
+}
+.sql_table {
+    border-width: 2px;
+    border-spacing: 3px;
+    border-style: none;
+    border-color: gray;
+    border-collapse: collapse;
+    background-color: white;
+    font-family: vendana, arial,sans-serif;
+    font-size: 11px;
+}
+.sql_table_td {
+    border-width: 1px;
+    padding: 4px;
+    border-style: solid;
+    border-color: lightgray;
+    background-color: white;
+}
+.msg_err {
+    background-color: rgba(255,105,112,0.5);
+}
+.msg_ok {
+    background-color: rgba(169,199,169,0.5);
+}
+</style>
+
+<p class="header">ADSBox Query Analyzer.<p>
+<p id="version" class="banner"></p>
+<textarea rows="3" cols="64" id="query">select * from flights</textarea>
+<button type="button" onclick="clear_table();query_db(document.getElementById('query').value, update_table)">Execute</button>
+<div>
+<table id="sqlite_error" class="sql_table" width="100%">
+<tr><td id="err_txt">&nbsp;</td></tr>
+<tr><td id="note">&nbsp;</td></tr>
+</table>
+<table id="sqlite_rows" class="sql_table"></table>
+</div>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<link rel="stylesheet" type="text/css" href="css/navbar.css">
+	<link rel="stylesheet" type="text/css" href="css/data.css">
+	<link rel="stylesheet" type="text/css" href="css/fboard.css">
+	<link rel="stylesheet" type="text/css" href="css/gm.css">
+	<link rel="stylesheet" type="text/css" href="css/log.css">
+	<script src="js/jquery-1.11.1.min.js"></script>
+	<script src="js/misc.js"></script>
+	<script src="js/data.js"></script>
+	<script src="js/fboard.js"></script>
+	<script src="js/gm.js"></script>
+	<script src="js/ge.js"></script>
+	<script src="js/log.js"></script>
+	<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?v=3"></script>
+	<script type="text/javascript" src="http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerwithlabel/src/markerwithlabel.js"></script>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<title>ADSBox</title>
+</head>
+
+<style>
+html, body {
+	height: 100%;
+	overflow: hidden;
+}
+#main_container {
+	position: absolute;
+	left: 0;
+	top:32px;
+	bottom: 0;
+	width: 100%;
+}
+.tab {
+	position: inherit;
+	width: 100%;
+	height: 100%;
+	bottom: 0;
+	visibility: hidden;
+}
+</style>
+
+<script>
+
+function toggleTab(tabname, tabid) {
+	finalizeAll();
+	
+	document.getElementById("data").style.visibility = "hidden";
+	document.getElementById("tab1").style.color = "";
+	document.getElementById("fb").style.visibility = "hidden";
+	document.getElementById("tab2").style.color = "";
+	document.getElementById("gmap").style.visibility = "hidden";
+	document.getElementById("gmap").style.display = "none";
+	document.getElementById("tab3").style.color = "";
+	document.getElementById("gearth").style.visibility = "hidden";
+	document.getElementById("tab4").style.color = "";
+	
+	document.getElementById(tabname).style.visibility = "visible";
+	document.getElementById(tabname).style.display = "block";
+	document.getElementById(tabid).style.color = "white";
+}
+
+function finalizeAll() {
+	finalizeData();
+	finalizeFboard();
+	finalizeGmap();
+	finalizeGE();
+}
+
+function initialize() {
+	initializeFboard();
+	setInterval(function(){getPopupLog()},3000);
+}
+
+</script>
+
+<body onload="toggleTab('fb','tab2'); initialize();">
+	<div id="navmenu">
+		<div id="online">
+			<img id="online_red" src="img/red.png">
+			<img id="online_yellow" src="img/yellow.png">
+			<img id="online_green" src="img/green.png">
+		</div>
+		<img id="logo" src="img/logo.png" onclick="window.open('http://diseqc.alh.org.ua/projects/hard/adsb');">
+		<ul>
+			<li id="tab1" onclick="toggleTab('data', this.id); initializeData();">Data</li>
+			<li id="tab2" onclick="toggleTab('fb', this.id); initializeFboard();">Flight board</li>
+			<li id="tab3" onclick="toggleTab('gmap', this.id);initializeGmap();">GMap</li>
+			<li id="tab4" onclick="toggleTab('gearth', this.id);initializeGE();">GEarth</li>
+		</ul>
+		<div id="clock">
+		</div>
+	</div>
+	<div id="main_container">	
+		<div id="data" class="tab" style="overflow-y: auto;">
+			<p class="header" align="center">Data sources</p>
+			<table id="sources" border="0" cellpadding="20" cellspacing="1" margin="10">
+				<tr/>
+			</table>
+			<p class="header" align="center">Threads</p>
+			<table id="threads" border="0" cellpadding="5" cellspacing="1" margin="10">
+				<tr style="background-color: lightgray;"><td>Decscription</td><td>CPU load</td><td>Uptime</td></tr>
+			</table>
+		</div>
+		<div id="fb" class="tab">
+			<table id="fboard">
+			</table>
+		</div>
+		<div id="gmap" class="tab">
+			<div id="info">
+			<div class="info_head">
+			<img align="right" src="img/close-icon.png" onClick="hideInfo();">
+			<span id="info_head_text"></span>
+			</div>
+			<table id="table_info" border="0">
+			<tr id="info_airline_bar">
+				<td colspan="2">
+					<span id="info_airline" class ="info_cell_text"></span><br>
+					<span id="info_airline_country" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<span class="info_cell_head">Reg.</span><br>
+					<span id="info_country" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span class="info_cell_head">ICAO</span><br>
+					<span id="info_icao" class ="info_cell_text"></span>
+				<td>
+						<span class="info_cell_head">Squawk</span><br>
+						<span id="info_squawk" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span class="info_cell_head">Altitude</span><br>
+					<span id="info_alt" class ="info_cell_text"></span>
+				</td>
+				<td id="info_vspeed_cell">
+					<span class="info_cell_head">Vert. speed</span><br>
+					<span id="info_vspeed" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td id="info_speed_cell">
+						<span class="info_cell_head">Speed</span><br>
+						<span id="info_speed" class ="info_cell_text"></span>
+				</td>
+				<td id="info_heading_cell">
+						<span class="info_cell_head">Heading</span><br>
+						<span id="info_heading" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td id="info_lat_cell">
+						<span class="info_cell_head">Lat</span><br>
+						<span id="info_lat" class ="info_cell_text"></span>
+				</td>
+				<td id="info_lon_cell">
+						<span class="info_cell_head">Lon</span><br>
+						<span id="info_lon" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+						<div style="position: relative">
+							<div id="flight_img"></div>
+							<div id="img_author"></div>
+						</div>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+						<span class="info_cell_head">Data source</span><br>
+						<span id="info_source" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			</table>
+			</div>
+
+		<div id="airport">
+			<div class="info_head">
+				<img align="right" src="img/close-icon.png" onClick="toggleAirportInfo(0);">
+				<span id="airport_head_text"></span>
+			</div>
+			<table id="table_airport" class="table_airport" border="0">
+			<tr>
+				<td>
+					<span id="info_airport_name" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span id="info_airport_city" class ="info_cell_text"></span>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<table id="table_metar" class="table_airport" border="0">
+						<tr>
+							<td>
+								<span class ="info_cell_head">QNH</span>
+							</td>
+							<td>
+								<span id="metar_qnh" class ="info_cell_text"></span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span class ="info_cell_head">Visibility</span>
+							</td>
+							<td>
+								<span id="metar_visibility" class ="info_cell_text"></span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span class ="info_cell_head">Temperature</span>
+							</td>
+							<td>
+								<span id="metar_temperature" class ="info_cell_text"></span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span class ="info_cell_head">Dewpoint</span>
+							</td>
+							<td>
+								<span id="metar_dewpoint" class ="info_cell_text"></span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span class ="info_cell_head">Wind speed</span>
+							</td>
+							<td>
+								<span id="metar_wind_speed" class ="info_cell_text"></span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span class ="info_cell_head">Wind direction</span>
+							</td>
+							<td>
+								<span id="metar_wind_direction" class ="info_cell_text" style="float:left;"></span>
+								<svg width="16" height="16">
+									<polygon id="wind_direction_arrow" wind_direction="0" points="8,16 8,5 5,5 9,0 13,5 10,5 10,16 9,15 8,16" 
+										style="fill:black;stroke:black;"/>
+								</svg>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								<span class ="info_cell_head">METAR</span><br>
+								<span id="metar_raw_report" class ="info_cell_text"></span>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			</table>
+		</div>
+
+		<div id="mapToolbar">
+			<img src="/img/plus.png" onClick="zoomIn();">
+			<img src="/img/minus.png" onClick="zoomOut();">
+			<div style="height:24px;"></div>
+			<img src="/img/settings.png" onClick="toggleSettings();">
+			<img src="/img/semicircular.png" id="measure_btn" onClick="toggleMeasure();">
+		</div>
+		
+		<div id="overlay"> <!-- -->
+			<div id="settings">
+				<div id="settings_header">
+					<img align="right" src="img/close-icon.png"  onClick="toggleSettings();">
+					<span id="settings_header_text">Settings</span>
+				</div>
+				<div id="settings_panel">
+					<div class="settings_text" style="margin-left: 12px; margin-top: 12px;">
+						Color scheme
+						<input type="radio" name="color_scheme" value="light" onChange="writeCookie('color_scheme', this.value); setColorScheme(this.value);">&nbsp;Light
+						<input type="radio" name="color_scheme" value="gray" onChange="writeCookie('color_scheme', this.value); setColorScheme(this.value);">&nbsp;Gray
+						<input type="radio" name="color_scheme" value="dark" onChange="writeCookie('color_scheme', this.value); setColorScheme(this.value);">&nbsp;Dark
+					</div>
+					<div class="settings_text" style="float: right; width: 50%; margin: 10px;">
+						<input id="label_opacity" type="checkbox" onChange="writeCookie('label_opacity', this.checked)">
+						<label for="label_opacity">Aircraft marker opacity as last seen time</label><br>
+						<input id="show_events" type="checkbox" onChange="writeCookie('show_events', this.checked)">
+						<label for="label_opacity">Show events</label><br>
+						<input id="smooth_mv" type="checkbox" onChange="writeCookie('smooth_mv', this.checked); updateMarker()">
+						<label for="smooth_mv">Smooth marker movement</label><br>
+						<input id="show_hyperline" type="checkbox" onChange="writeCookie('show_hyperline', this.checked)">
+						<label for="show_hyperline">Show MLAT hyperlines</label><br>
+						<input id="show_airports" type="checkbox" 
+							onChange="writeCookie('show_airports', this.checked); if (this.checked) getAirports(true); else getAirports(false);">
+						<label for="show_airports">Show airports</label>
+					</div>
+					<div id="settings_labels">
+					</div>
+					<div id="settings_radar">
+						<span><label><input id="show_radar" type="checkbox" onChange="writeCookie('show_radar', this.checked)">Show radar</label></span><br>
+						<span><label><input id="radar_ranges" type="checkbox" onChange="writeCookie('radar_ranges', this.checked)">100km ranges</label></span><br>
+					</div>
+				</div>
+			</div> 
+		</div> <!-- -->
+
+		<div id="mapCanvas">
+		</div>
+		
+	</div>
+	<div id="gearth" class="tab">
+	</div>
+	<div id="log">
+		<div id="log_header" onclick="toggleLog();">
+			<span style="margin: 20px;">Log</span>
+		</div>
+		<div id="log_content">
+			<table id="log_table">
+				<tbody>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+</body>
+</html>

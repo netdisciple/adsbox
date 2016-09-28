@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <description>
+  <![CDATA[
+	Air Traffic by <a href="http://diseqc.alh.org.ua/projects/hard/adsb/index.html">ADSBox</a>.<br>
+	Flight <a href="http://192.168.1.6:8080">board</a>.
+	]]>
+  </description>
+  <NetworkLink>
+    <refreshVisibility>1</refreshVisibility>
+    <flyToView>0</flyToView>
+    <Link>
+      <href>http://192.168.1.6:8080/adsbox.kml</href>
+      <refreshMode>onInterval</refreshMode>
+	<refreshInterval>6</refreshInterval>
+    </Link>
+  </NetworkLink>
+</Document>
+</kml>

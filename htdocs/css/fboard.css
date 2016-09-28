@@ -1,0 +1,32 @@
+.table_head {
+	background-color: #bebbd5;
+}
+.sp_column {
+	width: 16px;
+}
+#fb {
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+#fboard {
+	margin: auto;
+	min-width: 650px;
+	font-family: arial;
+	font-size: 14px;
+	margin-top: 0px;
+	border-spacing: 1px 0px;
+}
+#fboard thead {
+	position: fixed;
+}
+#fboard thead tr th {
+	padding: 4px;
+}
+#fboard tbody{
+	display: block;
+	margin-top: 20px;
+}
+#fboard tbody tr td{
+	padding: 4px;
+	white-space: nowrap;
+}

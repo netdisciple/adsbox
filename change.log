@@ -1,0 +1,87 @@
+20160417
+    - Online indicator.
+    - Smooth aircraft marker movement on Google Map.
+    - Event messages on aircraft marker.
+    - Web server deflate compression support.
+    - Per thread statistics (CPU load, uptime).
+    - Display aircraft reg. country by its 24bit ICAO address.
+    - Display airlane if possible;
+    - Display airports on map. METAR info for airports (courtesy of www.avwx.rest).
+    - Display downlink format (DF) mask on Flight board.
+20150509
+    - Indirect calculations of speed, vertical speed and heading (these 
+    parameters are painted yellow).
+20150409
+    - DF17 type code 28, 29 decode.
+    - Web interface renew.
+    - Add an aircraft photo (from www.airport-data.com)
+    - Events popup messages (take off/landing, squawk change etc.)
+    - Measure tool on Google map
+    - Minor bugfixes.
+20141214
+    - SBS-3 code rework by Nikolay Zlatev, thanks.
+    - Various settings on Google Map: custom labels, radar coverage,
+    color scheme.
+    - New Data tab on web server page. Real time data sources statistics -
+    packets received, aircraft tracking etc. Packets rate chart.
+    - UDP push avr data feature added.
+    - UDP server listening for incoming UDP avr data.
+    - Beast binary protocol is supported.
+    - Keep-alive HTTP connections.
+20140405
+    - Plane labels on Google Map. Scalable plane marks for comfort viewing.
+    - Only visible marks are showing on Google Map to reduce network trafic.
+    - Timestamps in MSG data output to be more conform with SBS-1 protocol.
+    - Linked list instead of IPC message queue.
+20131020
+    - Data sources now is in database. So we can run multiple 
+    data sources at once. Set data source location with --lat, --lon 
+    option.
+    - SQLite query anayzer at http://192.168.x.x:8080/sqlite.html 
+    to explore ADSBox database.
+    - Ground trafic decode (thanks to Lee Armstrong for Heathrow 
+    trafic log).
+    - Decoding Kinetic SBS-3 TCP data (thanks to Rene for sharing his data).
+    - multiple decoder threads with --dec-threads option.
+20130707
+    - correct Gillham code decode for altitude.
+    - librtlsdr support - USB SDR dongles (disabled in Makefile by default).
+    Run with --rtlsdr option.
+20130224
+    - correct DF11 crc. Many thanks to Andrew Hall and 
+    ModeSBeast@yahoogroups.com people.
+    - web pages revisited. Index page is at http://192.168.x.x:8080.
+    - Google Map and Google Earth plugin support added.    
+20130125
+    - DF11 all call reply, DF20 altitude reply decode.
+    - separate .c files for data sources.
+    - multiple data sources can run together now.
+20120427
+    - working with MLAT enabled decoders thanks Petr Kouda for code and 
+    test feed.
+20120421
+    - Sharing incoming data through tcp port (--seed option).
+    - Using tcp server as avr-ascii data source (--avr-server option) 
+    thanks Sergsero for test feed.
+20120411
+    - DF0 decode (ACAS reply).
+    - long options in command line.
+    - set serial baudrate and bits in command line.
+    - draw radar coverage area in GE.
+20120401
+    - ADSBox now uses SQLite as in-memory database.
+    - In-built web server for status and manage.
+    - Visualize ADS-B data in Google Earth. 
+20111205
+    - decode DF4 altitude reply and flight status thanks to Alexander Heidrich.
+20111104
+    - record ADS-B data to file and play it again (see uubb.log).
+20110716
+    - DF5, DF21 decode (squawk).
+20110614
+    - Fix coordinate decode for South hemisphere (thanks Anton Parfenov);
+    - Add expire time for cash entry;
+    - Do SO_REUSEADDR with listening socket;
+    - Vertical rate decode in DF17,TC19.
+20110308
+    - First version.

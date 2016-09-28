@@ -1,0 +1,208 @@
+#mapCanvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 0;
+}
+#settings_btn {
+  width: 100px;
+  height: 26px;
+  position: absolute;
+  left: 600px;
+  float: left;
+  background-color: white;
+  border: 1px solid gray;
+  border-radius: 6px;
+  margin-top: 10px;
+  z-index: 1;
+}
+#settings_btn_text {
+  font-family: arial;
+  font-size: 16px;
+  position: relative;
+  left: 10px;
+  top: 3px;
+}
+#overlay {
+  visibility:hidden;
+  display: none;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  z-index: 9999;
+  background-image:url("../img/trans.png");
+}
+#settings {
+  font-family: arial;
+  font-size: 14px;
+  width: 360px;
+  position: relative;
+  top: 30px;
+  margin: auto auto;
+  //position: relative;
+  //top: 50%;
+  //left:50%;
+  //margin-top: 180px;
+  //margin-left: 180px;
+  border-radius: 0px 0px 6px 6px;
+}
+#settings_panel {
+  font-family: arial;
+  font-size: 12px;
+  background-color: white;
+  overflow: hidden;
+  width: 100%;
+  height: 300px;
+}
+#settings_header {
+  width: 100%;
+  height: 24px;
+  border-radius: 0px 12px 0px 0px;
+  background-color: gray;
+}
+#settings_header_text {
+  position: relative;
+  margin: 20px;
+  vertical-align: sub;
+}
+#settings_labels {
+  text-align: left;
+  width: 150px;
+  margin: 10px;
+}
+#settings_radar {
+   text-align: left;
+   margin: 10px;
+}
+#settings_radar_scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: 52px;
+  background-color: lightgray;
+  padding: 8px;
+}
+.title {
+  width: 25px;
+  height: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  float: left;
+  background-color: white;
+  border: 1px solid gray;
+  border-radius: 6px;
+  z-index: 1;
+}
+#label_container {
+  display: table;
+}
+.popup_message {
+  color: yellow;
+  background-color: gray;
+  display: inline-block;
+  padding: 1px;
+}
+#label_content {
+  color : black;
+  text-shadow: 1px 1px 1px darkgray;
+  background-color: white;
+  display: inline-block;
+  border-radius: 2px;
+}
+.measure_marker {
+  color : black;
+  text-shadow: 1px 1px 1px darkgray;
+  background-color: yellow;
+  border-radius: 2px;
+  opacity: 0.9;
+}
+.settings_text {
+  text-align: left;
+}
+#info {
+ width: 200px;
+ position: absolute;
+ top: 24px;
+ background-color: white;
+ z-index: 1;
+ display: none;
+ border-top-right-radius: 12px;
+ box-shadow:4px 4px 4px #777777;
+}
+.info_head {
+ font-family: arial;
+ font-size: 21px;
+ color: black;
+ text-align: left;
+ background-color: gray;
+ padding: 1px;
+ padding-left: 6px;
+ border-top-right-radius: 12px;
+}
+.info_cell_head {
+ font-family: arial;
+ font-size: 12px;
+ color: darkgray;
+ text-align: left;
+}
+.info_cell_text {
+ font-family: arial;
+ font-size: 14px;
+ color: black;
+ text-align: left;
+}
+#table_info {
+ width: 100%;
+ background-color: lightgray;
+ border-spacing: 1px;
+}
+#table_info td {
+ background-color: white;
+ width: 50%;
+ padding: 0px;
+}
+#table_info td span {
+ padding-left: 8px;
+}
+#img_author {
+  bottom: 8px;
+  left: 4px;
+  position: absolute;
+  color: white;
+  text-shadow: 1px 1px gray;
+  font-family: arial;
+  font-size: 12px;
+}
+#mapToolbar {
+background-image:url("../img/trans.png");
+position: absolute;
+top: 24px;
+right: 0px;
+width: 26px;
+z-index: 1;
+}
+#airport {
+position: absolute;
+width: 200px;
+top: 24px;
+right: 48px;
+box-shadow:4px 4px 4px #777777;
+z-index: 1;
+display: none;
+}
+.table_airport {
+ background-color: lightgray;
+ border-spacing: 1px;
+ width: 100%;
+}
+.table_airport td {
+ background-color: white;
+}
+.table_airport td span {
+ padding-left: 8px;
+}
