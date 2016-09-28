@@ -52,6 +52,9 @@ function updateTable() {
 		FROM FLIGHTS F LEFT JOIN (SELECT ID, TXT FROM V_SOURCES) S ON S.ID = F.ID_SOURCE ORDER BY F.APP_TIME DESC', function(data) {
 			var json_obj = JSON.parse(data);
 
+			if (json_obj.err != "SQLITE_OK")
+				return;
+
 			for (i in json_obj.sqlite_rows) {
 				if (i > 0) {
 					var flight = json_obj.sqlite_rows[i];

@@ -66,11 +66,24 @@ int db_update_source_rtlsdr_agc(unsigned int *id, int agc) {
 	return 0;
 }
 
+int db_update_source_rtlsdr_freq_correct(unsigned int *id, int fc) {
+
+	if (db_exec_sql("UPDATE SOURCE_RTLSDR SET FREQ_CORR=%i WHERE ID=%i", fc, *id))
+	    return 1;
+
+	if (!sqlite3_changes(db)) {
+		DEBUG("Can not frequency correction for source id %u\n", *id);
+		return 1;
+	}
+
+	return 0;
+}
+
 int run_source_rtlsdr() {
 	char ** results;
 	int rows, cols, i;
 	char *zErrMsg = 0;
-	char sql[] = "SELECT ID, DEVICE, GAIN, AGC, LAT, LON FROM SOURCE_RTLSDR ORDER BY ID";
+	char sql[] = "SELECT ID, DEVICE, GAIN, AGC, FREQ_CORR, LAT, LON FROM SOURCE_RTLSDR ORDER BY ID";
 	pthread_t child;
 
 	if (sqlite3_get_table(db, sql, &results, &rows, &cols, &zErrMsg) != SQLITE_OK) {
@@ -86,8 +99,9 @@ int run_source_rtlsdr() {
 		ri->device = atoi(results[i * cols + 1]);
 		ri->gain = atof(results[i * cols + 2]);
 		ri->agc = atoi(results[i * cols + 3]);
-		ri->lat = atof(results[i * cols + 4]);
-		ri->lon = atof(results[i * cols + 5]);
+		ri->freq_correct = atoi(results[i * cols + 4]);
+		ri->lat = atof(results[i * cols + 5]);
+		ri->lon = atof(results[i * cols + 6]);
 		pthread_create(&child, NULL, &rtlsdr_thread, ri); /* start rtlsdr thread */
 		pthread_detach(child);
 	}
@@ -314,7 +328,15 @@ void *rtlsdr_thread(void *arg) {
 	} else
 	DEBUG("Tuned to %u\n", ADSB_FREQ);
 
-	//	rtlsdr_set_freq_correction(dev, 45);
+	/* Frequency correction */
+	if (ri->freq_correct) {
+		r = rtlsdr_set_freq_correction(dev, ri->freq_correct);
+		if (r < 0) {
+			DEBUG("Failed to set freq. correction to %i ppm\n", ri->freq_correct);
+			goto exit;
+		} else
+		DEBUG("Set frequency correction %i ppm\n", ri->freq_correct);
+	}
 
 	/* Sample rate */
 	r = rtlsdr_set_sample_rate(dev, ADSB_RATE);
@@ -324,8 +346,10 @@ void *rtlsdr_thread(void *arg) {
 	}
 
 	r = rtlsdr_reset_buffer(dev);
-	if (r < 0)
+	if (r < 0) {
 		DEBUG("Failed to reset buffer.\n");
+		goto exit;
+	}
 
 	rtlsdr_read_sync(dev, NULL, 4096, NULL);
 #ifdef ASYNC_READ

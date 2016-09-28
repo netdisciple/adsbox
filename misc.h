@@ -1,7 +1,7 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 
-#define VERSION "20160417"
+#define VERSION "20160617"
 #define DEBUG(...) if(!dmode) {fprintf(stdout,__VA_ARGS__);fflush(stdout);}
 void panic(char *msg);
 #define panic(m) {perror(m); abort();}

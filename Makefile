@@ -6,7 +6,7 @@ CC = gcc
 INCLUDE =
 LIBS = -lpthread -lm -lrt -ldl -lz
 CFLAGS = -Wall -g
-SQLITEFLAGS = -DSQLITE_THREADSAFE=1
+SQLITEFLAGS = -D SQLITE_THREADSAFE=1 -D SQLITE_DEFAULT_AUTOVACUUM=1
 WITH_RTLSDR = no
 WITH_MLAT = no
 RTLSDR_INC = -I../../rtlsdr/rtl-sdr/include

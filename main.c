@@ -100,11 +100,8 @@ void *decoder(void *arg) {
 			head = head->next;
 			pthread_mutex_unlock(&mux_queue);
 		} else {
-			//DEBUG("\nBefore wait");
 			pthread_cond_wait(&cond_var_queue, &mux_queue);
-			//DEBUG("\nAfter wait");
 			pthread_mutex_unlock(&mux_queue);
-			//usleep(1000);
 			continue;
 		}
 
@@ -117,7 +114,6 @@ void *decoder(void *arg) {
 
 		if ((data->data_len == 7 && decode_message56(data, (char *) msg))
 				|| (data->data_len == 14 && decode_message(data, (char *) msg))) {
-			//DEBUG("\nBefore decode");
 			pthread_mutex_lock(&mux);
 			bzero(grawdata, BUFLEN);
 			if (!data->timestamp)
@@ -138,7 +134,6 @@ void *decoder(void *arg) {
 			memcpy(gdata, msg, strlen((char *) msg));
 			pthread_cond_broadcast(&cond_var);
 			pthread_mutex_unlock(&mux);
-			//DEBUG("\nAfter decode");
 			bzero(msg, sizeof(msg));
 			db_update_source_stat(data);
 		}
@@ -256,6 +251,7 @@ void usage(void) {
 	printf("\t--rtlsdr [=n] use RTLSDR device n (0 is default)\n");
 	printf("\t--gain [auto|val] set RTLSDR device autogain or gain value (max available by default)\n");
 	printf("\t--agc use RTLSDR device AGC\n");
+	printf("\t--freq-correct [PPM] set RTLSDR device frequency correction to PPM\n");
 #endif
 	printf("\t--sbs3-server [IP] connect to SBS-3 data server\n");
 	printf("\t--sbs3-server-port [port] connect to sbs3 data server port (default 10001)\n");
@@ -293,41 +289,44 @@ void short_timer() {
 int main(int ac, char *av[]) {
 	extern char * optarg;
 	static struct option long_options[] = {
-			{ "daemon", no_argument, NULL, 'd' }, { "serial",
-			required_argument, NULL, 's' }, { "help", no_argument,
-			NULL, 'h' }, { "lat", required_argument, NULL, 'l' }, { "lon",
-			required_argument, NULL, 'g' }, { "record",
-			required_argument, NULL, 'r' }, { "play",
-			required_argument, NULL, 'p' }, { "rate",
-			required_argument, NULL, 'x' }, { "snooze",
-			required_argument, NULL, 'z' }, { "baud",
-			required_argument, NULL, 1 }, { "bits", required_argument,
-			NULL, 2 }, { "seed", no_argument, NULL, 3 }, { "seed-port",
-			required_argument, NULL, 4 }, { "avr-server",
-			required_argument, NULL, 5 }, { "avr-server-port",
-			required_argument, NULL, 6 },
+			{"daemon", no_argument, NULL, 'd'},
+			{"serial",required_argument, NULL, 's'},
+			{"help", no_argument, NULL, 'h'},
+			{"lat", required_argument, NULL, 'l'},
+			{"lon",required_argument, NULL, 'g'},
+			{"record", required_argument, NULL, 'r'},
+			{"play", required_argument, NULL, 'p'},
+			{"rate", required_argument, NULL, 'x'},
+			{"snooze",required_argument, NULL, 'z'},
+			{"baud", required_argument, NULL, 1},
+			{"bits", required_argument, NULL, 2},
+			{"seed", no_argument, NULL, 3},
+			{"seed-port", required_argument, NULL, 4},
+			{"avr-server", required_argument, NULL, 5},
+			{"avr-server-port", required_argument, NULL, 6},
 #ifdef RTLSDR
-			{ "rtlsdr", optional_argument, NULL, 7 }, { "gain",
-					required_argument, NULL, 8 },
-			{ "agc", no_argument, NULL, 9 },
-
+			{"rtlsdr", optional_argument, NULL, 7},
+			{"gain", required_argument, NULL, 8},
+			{"agc", no_argument, NULL, 9},
+			{"freq-correct", required_argument, NULL, 10},
 #endif
-			{ "sbs3-server", required_argument, NULL, 10 }, {
-					"sbs3-server-port", required_argument, NULL, 11 }, {
-					"dec-threads", required_argument, NULL, 12 }, {
-					"udp-push-to", required_argument, NULL, 13 }, {
-					"udp-push-port", required_argument, NULL, 14 }, {
-					"udp-server-port", required_argument, NULL, 15 }, {
-					"beast-server", required_argument, NULL, 16 }, {
-					"beast-server-port", required_argument, NULL, 17 }, {
-					"http-port", required_argument, NULL, 18 },
+			{"sbs3-server", required_argument, NULL, 11},
+			{"sbs3-server-port", required_argument, NULL, 12},
+			{"dec-threads", required_argument, NULL, 13},
+			{"udp-push-to", required_argument, NULL, 14},
+			{"udp-push-port", required_argument, NULL, 15},
+			{"udp-server-port", required_argument, NULL, 16},
+			{"beast-server", required_argument, NULL, 17},
+			{"beast-server-port", required_argument, NULL, 18},
+			{"http-port", required_argument, NULL, 19},
 #ifdef MLAT
-			{ "mlat", no_argument, NULL, 19 },
+			{"mlat", no_argument, NULL, 20},
 #endif
-			{ "hz", required_argument, NULL, 20 }, { "no-events", no_argument,
-					NULL, 21 }, { "no-indirect", no_argument, NULL, 22 },
-					{ "name", required_argument, NULL, 23 },
-					{ 0, 0, 0, 0 } };
+			{"hz", required_argument, NULL, 21},
+			{"no-events", no_argument, NULL, 22},
+			{"no-indirect", no_argument, NULL, 23},
+			{"name", required_argument, NULL, 24},
+			{0, 0, 0, 0} };
 	int option_index;
 	struct sockaddr_in addr;
 	int sd, sdd = 0, max_d, en = 1;
@@ -451,54 +450,57 @@ int main(int ac, char *av[]) {
 		case 9:
 			db_update_source_rtlsdr_agc(&id_source, 1);
 			break;
-#endif
 		case 10:
+			db_update_source_rtlsdr_freq_correct(&id_source, atoi(optarg));
+			break;			
+#endif
+		case 11:
 			id_source++;
 			db_insert_source_tcp_sbs3(&id_source, optarg);
 			break;
-		case 11:
+		case 12:
 			db_update_source_tcp_sbs3_port(&id_source, atoi(optarg));
 			break;
-		case 12:
+		case 13:
 			dec_threads = atoi(optarg);
 			break;
-		case 13:
+		case 14:
 			udp_i = malloc(sizeof(udp_push_info));
 			strncpy(udp_i->addr, optarg, sizeof(udp_i->addr));
 			udp_i->port = 30005;
 			break;
-		case 14:
-			udp_i->port = atoi(optarg);
-			break;
 		case 15:
-			id_source++;
-			db_insert_source_udp_avr(&id_source, atoi(optarg));
+			udp_i->port = atoi(optarg);
 			break;
 		case 16:
 			id_source++;
-			db_insert_source_tcp_beast(&id_source, optarg);
+			db_insert_source_udp_avr(&id_source, atoi(optarg));
 			break;
 		case 17:
-			db_update_source_tcp_beast_port(&id_source, atoi(optarg));
+			id_source++;
+			db_insert_source_tcp_beast(&id_source, optarg);
 			break;
 		case 18:
+			db_update_source_tcp_beast_port(&id_source, atoi(optarg));
+			break;
+		case 19:
 			hi->port = atoi(optarg);
 			break;
 #ifdef MLAT
-		case 19:
+		case 20:
 			with_mlat = 1;
 			break;
-		case 20:
+		case 21:
 			db_update_hz(id_source, atoi(optarg));
 			break;
 #endif
-		case 21:
+		case 22:
 			no_events = 1;
 			break;
-		case 22:
+		case 23:
 			no_indirect = 1;
 			break;
-		case 23:
+		case 24:
 			db_source_name(optarg, &id_source);
 			break;	
 		case 'd':
@@ -657,9 +659,35 @@ int main(int ac, char *av[]) {
 	pthread_create(&child, NULL, &http_server, hi);
 	pthread_detach(child);
 
-	//char msg[256];
-	//decode_message("8D4000FB5875444148D9A70B023A", msg);
-	//exit(0);
+	/*char msg[256];
+	adsb_data data;
+	data.data_len = 14;
+	data.data[0] = 0x8D;
+	data.data[1] = 0x15;
+	data.data[2] = 0x77;
+	data.data[3] = 0x0B;
+	data.data[4] = 0x99;
+	data.data[5] = 0x04;
+	data.data[6] = 0x09;
+	data.data[7] = 0x25;
+	data.data[8] = 0x48;
+	data.data[9] = 0xA0;
+	data.data[10] = 0x01; //0x00
+	data.data[11] = 0xA4;
+	data.data[12] = 0x98;
+	data.data[13] = 0xA6;
+
+	data.data_len = 7;
+	data.data[0] = 0x5D;
+	data.data[1] = 0x40; // 0x42
+	data.data[2] = 0x49;
+	data.data[3] = 0xC6;
+	data.data[4] = 0xF3;
+	data.data[5] = 0xFF;
+	data.data[6] = 0xDD;
+
+	decode_message(&data, msg);
+	exit(0); */
 
 	/*--- create sbs-1 data socket ---*/
 	sd = socket(AF_INET, SOCK_STREAM, 0);

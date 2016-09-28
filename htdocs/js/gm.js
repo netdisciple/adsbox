@@ -13,7 +13,6 @@
 	var Markers = {};
 	var Airports = {};
 	var GMDataTimer;
-	var RadarDataTimer;
 	var UpdateMarkerTimer;
 	var PlayerMode = 0; // history data playing mode
 
@@ -202,7 +201,7 @@
 		msg: new popupObject() // popup message object
 		});
 	  marker.setTitle(("000000" + Number(flight['c0']).toString(16)).substr(-6).toUpperCase());
-	  
+
 	  // click on marker
 	  google.maps.event.addListener(marker,
 	   'click', function() {
@@ -235,34 +234,18 @@ function createRadarMarker(location, title, radar) {
 	show_range: false
 	});
   marker.setTitle(title);
-  
+
   // click on marker
   google.maps.event.addListener(marker,
    'click', function() {
    		marker.show_range = !marker.show_range;
-   		console.log('radar_id ' + radar);
 
    		 if ((Radars[radar].marker.show_range) && (Radars[radar].marker.map != null)) { // show radar area
 		    	showRadarArea(Radars[radar]);
-		    	/*query_db('SELECT ID, LAT, LON FROM RADAR_RANGE WHERE LAT<>0 AND LON<>0 AND ID=' + Radars[radar].id, function(data) {
-		        var radar_id;
-				var json_obj = JSON.parse(data);
-		        for (i in json_obj.sqlite_rows) {
-		          var r = json_obj.sqlite_rows[i];
-		          if (i > 0) {
-		            radar_id = r['c0'];
-		            Radars[radar_id].path[i-1] = new google.maps.LatLng(r['c1'],r['c2']);
-		          }
-		        }
-		        Radars[radar_id].areaPolygon.setMap(Map);
-		        Radars[radar_id].areaPolygon.setPath(Radars[radar_id].path);
-		      });*/
 		    } else { // hide radar area and ranges
 		    	if (Radars[radar].areaPolygon)
 		    		Radars[radar].areaPolygon.setMap(null);
-		    	console.log('hide radar');
 		    }
-
 	});
 
   return marker;
@@ -278,7 +261,7 @@ function createAirportMarker(location, title, name, icao) {
 	labelClass: "labels",
 	});
   marker.setTitle(name); // popup txt
-  
+
   // click on marker
   google.maps.event.addListener(marker,
    'click', function() {
@@ -314,6 +297,9 @@ function getData_() {
 		query_db(sql, function(data){ 
 			var json_obj = JSON.parse(data);
 
+			if (json_obj.err != "SQLITE_OK")
+				return;
+
 			for (i in json_obj.sqlite_rows) {
 				if (i > 0) {
 					var flight = json_obj.sqlite_rows[i];
@@ -345,7 +331,7 @@ function getData_() {
 					}
 				}
 			}
-			
+
 			for (f in Flight_list)	{
 				if (!active[Flight_list[f]['c0']]) {
 					Markers[Flight_list[f]['c0']].setMap(null);
@@ -357,11 +343,11 @@ function getData_() {
 					delete Flight_list[f];
 				}
 			}
-			
+
 			getFlightHTML(); // set info text
 	 
 	 	})
-	 	
+
 	 	// Draw flight track if selected
 	 	if (Selected_icao) {
 	 		query_db('SELECT LAT, LON, ALT, ROWID FROM TRACKS WHERE ICAO=' + 
@@ -476,10 +462,10 @@ function getData_() {
 		var req = new XMLHttpRequest();
 		var image_div = document.getElementById("flight_img");
 		var author_div = document.getElementById("img_author");
-		
+
 		image_div.innerHTML = '';
 		author_div.innerHTML = '';
-		
+
 		req.open('GET', 'proxy=http://www.airport-data.com/api/ac_thumb.json?m=' + Number(icao).toString(16).toUpperCase() + '&n=1', true);
 		req.onreadystatechange = function() {
 			if (req.readyState === 4) {
@@ -512,7 +498,7 @@ function getData_() {
 			$("#info").animate({width: 'toggle'}, 300);
 		Selected_icao = null;
 		hideTrack();
-	}	
+	}
 
 	// popup left side Info window
 	function toggleInfo(icao) {
@@ -725,7 +711,7 @@ function getData_() {
 	  return HTML;
 	}
 
-	function getSettingsRadarsHTML() {
+	function getRadars() {
 		query_db('SELECT ID, TXT, LAT, LON, NAME FROM V_SOURCES WHERE LAT<>0 AND LON<>0', function(data){
 			var json_obj = JSON.parse(data);
 			var c = 0;
@@ -750,45 +736,65 @@ function getData_() {
 						clickable: false
 					})
 					};
+					// populate ranges array
+					for (var i=0; i<5; i++) {
+			          var rangeOptions = {
+			          strokeColor: '#000000',
+			          strokeOpacity: 0.6,
+			          strokeWeight: 1,
+			          fillColor: '#00FF00',
+			          fillOpacity: 0.0,
+			          map: null,
+			          center: Radars[r['c0']].location,
+			          radius: i * 100000,
+			          clickable: false
+			          }
+			          Radars[r['c0']].ranges.push(new google.maps.Circle(rangeOptions));
+			        }
 				}
 			}
-			document.getElementById('show_radar').checked=(readCookie('show_radar')=='true');
-			document.getElementById('radar_ranges').checked=(readCookie('radar_ranges')=='true');
+			showRadars((readCookie('show_radar')=='true'));
 		});
 	}
 
-	function getRadarData() {
+	function showRadars(show) {
 		for (var radar in Radars) {
-	    	Radars[radar].marker.setMap((readCookie('show_radar') == 'true') ? Map : null);
+			if (show) {
+				Radars[radar].marker.setMap(Map);
 
-		    if ((readCookie('radar_ranges')=='true') && (Radars[radar].marker.map != null)) {
-		    	for (var i=0; i<5; i++) {
-		          var rangeOptions = {
-		          strokeColor: '#000000',
-		          strokeOpacity: 0.6,
-		          strokeWeight: 1,
-		          fillColor: '#00FF00',
-		          fillOpacity: 0.0,
-		          map: Map,
-		          center: Radars[radar].location,
-		          radius: i * 100000,
-		          clickable: false
-		          }
-		          if (!Radars[radar].ranges[i])
-		            Radars[radar].ranges.push(new google.maps.Circle(rangeOptions));
-		        }
-		    } else { // turn off ranges and radar area
-		        for (var i=0; i<5; i++)
-		          if (Radars[radar].ranges[i])
-		            Radars[radar].ranges[i].setMap(null);
-		        while (Radars[radar].ranges.length > 0)
-			  		Radars[radar].ranges.pop(); // clear array
-			  	Radars[radar].areaPolygon.setMap(null);
-		    }
+			    if (readCookie('radar_ranges')=='true') {
+			    	// show radar ranges
+			    	for (var i=0; i<5; i++)
+			          if (Radars[radar].ranges[i])
+			            Radars[radar].ranges[i].setMap(Map);
+			    } else { // turn off ranges and radar area
+			    	for (var i=0; i<5; i++)
+			          if (Radars[radar].ranges[i])
+			            Radars[radar].ranges[i].setMap(null);
+			        Radars[radar].areaPolygon.setMap(null);
+			    }
+			}
+			else {
+				Radars[radar].marker.setMap(null);
+				for (var i=0; i<5; i++)
+			        if (Radars[radar].ranges[i])
+			            Radars[radar].ranges[i].setMap(null);
+			    Radars[radar].areaPolygon.setMap(null);
+			}
+		} 
+	}
 
-		    if ((Radars[radar].marker.show_range) && (Radars[radar].marker.map != null)) { // update radar area
-		    	showRadarArea(Radars[radar]);
-		    }
+	function showRadarRanges(show) {
+		for (var radar in Radars) {
+			if (show) {
+				for (var i=0; i<5; i++)
+			        if ((Radars[radar].ranges[i]) && (Radars[radar].marker.map != null))
+			            Radars[radar].ranges[i].setMap(Map);
+			} else {
+				for (var i=0; i<5; i++)
+			        if (Radars[radar].ranges[i])
+			            Radars[radar].ranges[i].setMap(null);	
+			}
 		}
 	}
 
@@ -808,7 +814,7 @@ function getData_() {
 
 	// Get all airport markers in zoom area
 	function getAirports(show) {
-		if (show && (Map.getZoom() > 8)) {
+		if (show && (Map.getZoom() > 7)) {
 			var bounds = Map.getBounds();
 			var ne = bounds.getNorthEast();
 			var sw = bounds.getSouthWest();
@@ -1007,9 +1013,9 @@ function getData_() {
 	  if (document.getElementById("settings_labels"))
 	  	document.getElementById("settings_labels").innerHTML = getSettingsLabelsHTML();
 
-	  //draw radars
-	  getSettingsRadarsHTML();
-
+	  //put radars on map
+	  getRadars();
+	  
 	  var radio_color_scheme = document.getElementsByName("color_scheme");
 	  for (var i = 0; i < radio_color_scheme.length; i++) {
 		if (radio_color_scheme[i].value == readCookie("color_scheme"))
@@ -1029,6 +1035,8 @@ function getData_() {
 	  document.getElementById('smooth_mv').checked=(readCookie('smooth_mv')=='true');
 	  document.getElementById('show_hyperline').checked=(readCookie('show_hyperline')=='true');
 	  document.getElementById('show_airports').checked=(readCookie('show_airports')=='true');
+	  document.getElementById('show_radar').checked=(readCookie('show_radar')=='true');
+	  document.getElementById('radar_ranges').checked=(readCookie('radar_ranges')=='true');
 
 	  HyperlineLeft = new google.maps.Polyline({
 					strokeColor: "blue",
@@ -1047,8 +1055,7 @@ function getData_() {
 	  }
 	  
 	  GMDataTimer = setInterval(function(){getData_();},3000);
-	  RadarDataTimer = setInterval(function(){getRadarData();},5000);
-
+	  
 	  if (Map.getZoom() > 8)
 			UpdateMarkerTimer = setTimeout(function(){updateMarker();},500);
 		else
@@ -1057,7 +1064,6 @@ function getData_() {
 
 	function finalizeGmap() {
 		clearInterval(GMDataTimer);
-		clearInterval(RadarDataTimer);
 		clearInterval(UpdateMarkerTimer);
 		hideInfo();
 	}

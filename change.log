@@ -1,3 +1,6 @@
+20160617
+    - markerwithlabel.js stored locally.
+    - 1-bit error correction for DF11, DF17.
 20160417
     - Online indicator.
     - Smooth aircraft marker movement on Google Map.

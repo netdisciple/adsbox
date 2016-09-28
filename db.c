@@ -88,7 +88,7 @@ char *stmts[] =
 		    PKTS INTEGER DEFAULT 0, BYTES INTEGER DEFAULT 0, NAME TXT DEFAULT '')",
 				"CREATE INDEX IX_SOURCE_SERIAL ON SOURCE_SERIAL (ID)",
 				"CREATE TABLE SOURCE_RTLSDR(ID INTEGER PRIMARY KEY ASC, DEVICE NUMBER DEFAULT 0, \
-		    GAIN REAL DEFAULT -1, AGC INTEGER DEFAULT 0, \
+		    GAIN REAL DEFAULT -1, AGC INTEGER DEFAULT 0, FREQ_CORR INTEGER DEFAULT 0, \
                     LAT REAL DEFAULT 0, LON REAL DEFAULT 0, PKTS INTEGER DEFAULT 0, BYTES INTEGER DEFAULT 0, NAME TXT DEFAULT '')",
 				"CREATE INDEX IX_SOURCE_RTLSDR ON SOURCE_RTLSDR (ID)",
 				"CREATE TABLE SOURCE_UDP(ID INTEGER PRIMARY KEY ASC, PORT NUMBER DEFAULT 30005, \
@@ -104,8 +104,7 @@ char *stmts[] =
 		    SELECT ID, LAT, LON, PKTS, BYTES, NAME, NULL HZ, 'tcp_beast: ' || IP || ':' || PORT TXT FROM SOURCE_TCP_BEAST UNION \
 		    SELECT ID, LAT, LON, PKTS, BYTES, NAME, NULL HZ, 'rtlsdr: device ' || DEVICE TXT FROM SOURCE_RTLSDR UNION \
 		    SELECT ID, LAT, LON, PKTS, BYTES, NAME, NULL HZ, 'udp_avr: port ' || PORT TXT FROM SOURCE_UDP",
-		    "PRAGMA SYNCHRONOUS = OFF", "PRAGMA JOURNAL_MODE = OFF", "PRAGMA AUTO_VACUUM = FULL",
-		    "PRAGMA mmap_size=100000000",
+		    "PRAGMA synchronous=0", "PRAGMA journal_mode=OFF", "PRAGMA auto_vacuum=FULL",
 		    "CREATE TABLE THREADS(TID INTEGER, CLOCKID INTEGER, TIME_START REAL \
 		    	DEFAULT ((julianday('now') - 2440587.5)*86400), \
 		    	TIMESTAMP REAL DEFAULT 0, TIMESTAMP_CPU REAL DEFAULT 0,\
@@ -259,11 +258,12 @@ int db_delete_expired_log() {
 // DF11 only
 int db_update_icao(unsigned int *icao, adsb_data *data) {
 	if (db_exec_sql("UPDATE FLIGHTS SET ICAO=%i, ID_SOURCE=%i, DF_MASK=DF_MASK|(1<<11) WHERE ICAO=%i",
-			*icao, data->source_id, *icao)) return 1;
-	if (!sqlite3_changes(db)) {
+			*icao, data->source_id, *icao) || (!sqlite3_changes(db))) return 1;
+	//Update only. Do not insert into db. May be a phantom due to crc bit restore.
+	/*if (!sqlite3_changes(db)) {
 		if (db_exec_sql("INSERT INTO FLIGHTS (ICAO, DF_MASK, COUNTRY, ID_SOURCE) VALUES (%i, 1<<11,  country(%i), %i)",
 				*icao, *icao, data->source_id)) return 1;
-	}
+	}*/
 	return 0;
 }
 
@@ -592,9 +592,12 @@ int db_stat_thread() {
 		cpu_load = (time_cpu - sqlite3_column_double(stmt, 2)) * 100 / (time - sqlite3_column_double(stmt, 1));
 
 		if (db_exec_sql("UPDATE THREADS SET CPU_LOAD = %f, TIMESTAMP=%f, TIMESTAMP_CPU=%f WHERE CLOCKID=%u",
-			cpu_load, time, time_cpu, sqlite3_column_int(stmt, 0))) return 1;
-
+			cpu_load, time, time_cpu, sqlite3_column_int(stmt, 0))) {
+			sqlite3_finalize(stmt);
+			return 1;
+		}
 	}
+	sqlite3_finalize(stmt);
 	return 0;
 }
 
@@ -653,6 +656,7 @@ int db_exec_sql(char * format, ...) {
 	if (rc != SQLITE_OK) {
 		DEBUG("\ndb_exec_sql() error in\n%s\n%s\n", sql, zErrMsg);
 		sqlite3_free(zErrMsg);
+		free(sql);
 		return 1;
 	}
 	free(sql);
@@ -727,19 +731,27 @@ static void f_country(sqlite3_context *context, int argc, sqlite3_value **argv) 
 	sqlite3_result_null(context);
 }
 
+static void f_sqlite_mem(sqlite3_context *context, int argc, sqlite3_value **argv) {
+	if (argc == 0) {
+		sqlite3_int64 mem = sqlite3_memory_used();
+		sqlite3_result_int64(context, mem);
+		return;
+	}
+	sqlite3_result_null(context);
+} 
+
 int db_exec(char **stmts, sqlite3 *db) {
 	int rc;
 	char *zErrMsg = 0;
-	char **stmt = stmts;
 
-	while (*stmt) {
-		rc = sqlite3_exec(db, *stmt, NULL, 0, &zErrMsg);
+	while (*stmts) {
+		rc = sqlite3_exec(db, *stmts, NULL, 0, &zErrMsg);
 		if (rc != SQLITE_OK) {
 			DEBUG("SQLite error db_exec(): %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
 			return 1;
 		}
-		stmt++;
+		stmts++;
 	}
 
 	return 0;
@@ -769,6 +781,8 @@ int db_init(sqlite3 *db) {
 	sqlite3_create_function(db, "distance", 4, SQLITE_UTF8, NULL, &f_distance,
 	NULL, NULL);
 	sqlite3_create_function(db, "country", 1, SQLITE_UTF8, NULL, &f_country,
+	NULL, NULL);
+	sqlite3_create_function(db, "sqlite_mem", 0, SQLITE_UTF8, NULL, &f_sqlite_mem,
 	NULL, NULL);
 	DEBUG("done.\n");
 

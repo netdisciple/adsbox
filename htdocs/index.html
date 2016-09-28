@@ -16,8 +16,7 @@
 	<script src="js/ge.js"></script>
 	<script src="js/log.js"></script>
 	<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?v=3"></script>
-	<!-- script type="text/javascript" src="http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerwithlabel/src/markerwithlabel.js"></script -->
-	<script type="text/javascript" src="https://cdn.rawgit.com/googlemaps/v3-utility-library/master/markerwithlabel/src/markerwithlabel.js"></script>
+	<script src="js/markerwithlabel.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<title>ADSBox</title>
 </head>
@@ -298,14 +297,16 @@ function initialize() {
 						<input id="show_hyperline" type="checkbox" onChange="writeCookie('show_hyperline', this.checked)">
 						<label for="show_hyperline">Show MLAT hyperlines</label><br>
 						<input id="show_airports" type="checkbox" 
-							onChange="writeCookie('show_airports', this.checked); if (this.checked) getAirports(true); else getAirports(false);">
+							onChange="writeCookie('show_airports', this.checked); getAirports(this.checked);">
 						<label for="show_airports">Show airports</label>
 					</div>
 					<div id="settings_labels">
 					</div>
 					<div id="settings_radar">
-						<span><label><input id="show_radar" type="checkbox" onChange="writeCookie('show_radar', this.checked)">Show radar</label></span><br>
-						<span><label><input id="radar_ranges" type="checkbox" onChange="writeCookie('radar_ranges', this.checked)">100km ranges</label></span><br>
+						<span><label><input id="show_radar" type="checkbox" onChange="writeCookie('show_radar', this.checked);
+							showRadars(this.checked);">Show radars</label></span><br>
+						<span><label><input id="radar_ranges" type="checkbox" onChange="writeCookie('radar_ranges', this.checked);
+							showRadarRanges(this.checked);">100km ranges</label></span><br>
 					</div>
 				</div>
 			</div> 

@@ -256,12 +256,6 @@ int NL(double lat) {
 	return 1;
 }
 
-/*double modulo(double x, double y) {
- double r;
- r = x - y * floor(x / y);
- return r;
- }*/
-
 int modulo(int x, int y) {
 	int r;
 	r = x % y;
@@ -434,6 +428,26 @@ int ac_alt_decode(unsigned char *data2, unsigned char *data3) {
 	return alt;
 }
 
+int correct_1bit(adsb_data * data, int mask) {
+	int i, j, c;
+
+	for (i = 0; i < data->data_len; i++) { // bytes cycle
+		for (j = 0; j < 8; j++) {  // bit cycle
+			data->data[i] ^= 1 << j; // flip bit
+			c = crc_data((char *) data->data, data->data_len - 3);
+			if ((c & mask) == (((data->data[data->data_len - 3] << 16) | 
+					(data->data[data->data_len - 2] << 8) | data->data[data->data_len - 1]) & mask)) {
+				//DEBUG("\nRecovered byte %i bit %i", i, j);
+				return 1;
+			}
+			
+			data->data[i] ^= 1 << j; // flip bit back
+		}
+	}
+
+	return 0;
+}
+
 int decode_message56(adsb_data * data, char * msg) {
 	unsigned char * rawdata = (unsigned char *) data->data;
 	unsigned char df;
@@ -509,9 +523,11 @@ int decode_message56(adsb_data * data, char * msg) {
 		/* Thanks to Andrew Hall and ModeSBeast@yahoogroups.com with "Bad CRC!"
 		 The lower six bits (interrogator ID) are not checked for DF11, discussion is here
 		 http://groups.yahoo.com/group/ModeSBeast/messages/1227?threaded=1&m=e&var=1&tidx=1
+		 But! Anx.10 Vol.4 -> CL(3 bits) + IC(4 bits) = 7 bits (3.1.2.5.2.1.3 and 3.1.2.5.2.1.2 notes)
 		 */
 		int c = crc_data((char *) data->data, 4);
-		if ((c & 0xFFFFC0) != ((rawdata[4] << 16) | (rawdata[5] << 8) | (rawdata[6] & 0xC0))) {
+		if (((c & 0xFFFF80) != ((rawdata[4] << 16) | (rawdata[5] << 8) | (rawdata[6] & 0x80))) && 
+			(!correct_1bit(data, 0xFFFF80))) {
 			//DEBUG("Bad CRC !");
 			return 0;
 		}
@@ -574,7 +590,7 @@ int decode_message(adsb_data *data, char *msg) {
 	case 17:
 	case 18: {
 		int c = crc_data((char *) data->data, 11);
-		if (c != ((rawdata[11] << 16) | (rawdata[12] << 8) | rawdata[13])) { // TODO FEC
+		if ((c != ((rawdata[11] << 16) | (rawdata[12] << 8) | rawdata[13])) && (!correct_1bit(data, 0xFFFFFF))) {
 			//DEBUG("Bad CRC !");
 			return 0;
 		}
@@ -584,7 +600,7 @@ int decode_message(adsb_data *data, char *msg) {
 		if ((tc > 0) && (tc < 5)) {	// aircraft ID, and category
 			char callsign[9];
 			char cat[3];
-			char *t = "DCBA";
+			char t[4] = {'D','C','B','A'};
 			sprintf(cat, "%c%u", t[tc - 1], rawdata[4] & 0x07);
 			bzero(&callsign, 9);
 			unsigned int cs = (rawdata[5] << 16) | (rawdata[6] << 8)
@@ -680,8 +696,7 @@ int decode_message(adsb_data *data, char *msg) {
 		} else if ((tc > 4) && (tc < 9)) { // aircraft surface position
 			double d = 0;
 			if ((data->lat == 0) && (data->lon == 0)) {
-				DEBUG(
-						"\nDF%u.%u\tICAO:%06x Surface position is unavailable. Set the receiver location (--lat --lon options).",
+				DEBUG("\nDF%u.%u\tICAO:%06x Surface position is unavailable. Set the receiver location (--lat --lon options).",
 						df, tc, icao);
 				return 0; // can't find surface position
 			}

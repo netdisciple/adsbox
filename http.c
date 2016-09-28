@@ -45,10 +45,11 @@ void http_header(int *s, int status, char *title, char *mime, char *encoding,
 	sprintf(buf, "Content-Type: %s\r\n", mime);
 	str = realloc(str, strlen(str) + strlen(buf) + 1);
 	str = strncat(str, buf, strlen(buf));
-	sprintf(buf,
-			"Cache-Control: no-cache, no-store, must-revalidate\r\nPragma: no-cache\r\nExpires: 0\r\n");
-	str = realloc(str, strlen(str) + strlen(buf) + 1);
-	str = strncat(str, buf, strlen(buf));
+	if (!strstr(mime, "image")) { // images are cached
+		sprintf(buf,"Cache-Control: no-cache, no-store, must-revalidate\r\nPragma: no-cache\r\nExpires: 0\r\n");
+		str = realloc(str, strlen(str) + strlen(buf) + 1);
+		str = strncat(str, buf, strlen(buf));
+	}
 	if (length > -1) {
 		sprintf(buf, "Content-Length: %i\r\n", length);
 		str = realloc(str, strlen(str) + strlen(buf) + 1);
@@ -92,7 +93,16 @@ int execute_sql(int *s, char * sql) {
 
 	rc = sqlite3_get_table(db, sql, &results, &rows, &cols, &zErrMsg);
 	if (rc != SQLITE_OK)
-		DEBUG("\nexecute_sql() error: %s\n in \n%s", zErrMsg, sql);
+		DEBUG("\nexecute_sql() error: %s in\n\"%s\"", zErrMsg, sql);
+
+	if (zErrMsg) {
+		int l = 0;
+		while (zErrMsg[l] != 0) {
+			if (zErrMsg[l] == '\t') zErrMsg[l] = ' ';
+			if (zErrMsg[l] == '\"') zErrMsg[l] = '\'';
+			l++;
+		}
+	}
 
 	sprintf(buf, "{\"timestamp\":\"%u\",\"err\":\"%s\",\"sqlite_rows\":[",
 			(unsigned)time(NULL), (rc == SQLITE_OK ? "SQLITE_OK" : zErrMsg));
@@ -105,9 +115,9 @@ int execute_sql(int *s, char * sql) {
 		for (j = 0; j < cols; j++) {
 			if (results[i * cols + j]) // null entries are possible
 				for (k = 0; results[i * cols + j][k] != '\0'; k++) {
-					if (results[i * cols + j][k] == '\t') // tabs are not allowed
+					if (results[i * cols + j][k] == '\t') // tabs are not allowed in json
 						results[i * cols + j][k] = ' ';
-					if (results[i * cols + j][k] == '\"') // quotes are not allowed
+					if (results[i * cols + j][k] == '\"') // quotes are not allowed in json
 						results[i * cols + j][k] = '\'';
 				}
 			sprintf(buf, "\"c%u\":\"%s\"%s", j, results[i * cols + j],
@@ -262,6 +272,8 @@ int make_kml(int *s) {
 		strcpy(buf, "</Placemark>\n");
 		send(*s, buf, strlen(buf), 0);
 	}
+	sqlite3_finalize(stmt_f);
+
 
 	sprintf(sql_r,
 			"SELECT ID, LAT, LON FROM V_SOURCES WHERE LAT <> 0 AND LON <> 0");
@@ -269,6 +281,7 @@ int make_kml(int *s) {
 	rc = sqlite3_prepare(db, sql_r, -1, &stmt_r, 0);
 	if (rc != SQLITE_OK) {
 		DEBUG("SQLite error: cant prepare %s\n %s\n", sql_r, sqlite3_errmsg(db));
+		sqlite3_finalize(stmt_r);
 		return 1;
 	}
 	while (sqlite3_step(stmt_r) == SQLITE_ROW) {
@@ -315,8 +328,6 @@ int make_kml(int *s) {
 				"</coordinates>\n</LinearRing>\n</outerBoundaryIs>\n</Polygon>\n</Placemark>\n");
 		send(*s, buf, strlen(buf), 0);
 	}
-
-	sqlite3_finalize(stmt_f);
 	sqlite3_finalize(stmt_r);
 
 	strcpy(buf, "</Document></kml>\n");
